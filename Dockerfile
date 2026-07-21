@@ -94,8 +94,28 @@ RUN source /opt/ros/noetic/setup.bash && \
     catkin_make \
      -DSUPERBUILD_INSTALL_DIR=/ros_ws/src/ct_icp/install
      
-RUN sed -i 's|<arg name="topic" value="/rslidar_points"/>|<arg name="topic" value="/livox/pointcloud"/>|g' \
-    /ros_ws/src/ct_icp/ros/catkin_ws/ct_icp_odometry/launch/urban_loco/urban_loco_CAL.launch
+# california.yaml (vehicle-speed UrbanLoco tuning: CONSTANT_VELOCITY init,
+# large sample/frame voxels) produced trajectories that "converged successfully"
+# every frame per the logs but drifted badly on Oxford Spires' walking-pace
+# data. nhcd_config.yaml (Newer College Dataset -- an Oxford handheld/backpack
+# LiDAR dataset, same motion profile as Oxford Spires) uses CONTINUOUS motion
+# compensation + INIT_NONE + finer voxels, a much closer match.
+RUN sed -i 's|<arg name="topic" value="/os1_cloud_node/points"/>|<arg name="topic" value="/hesai/pandar"/>|g' \
+    /ros_ws/src/ct_icp/ros/catkin_ws/ct_icp_odometry/launch/nhcd/lidar_odometry_nhcd_os64.launch
+
+# nhcd_config.yaml assumes NHCD's Ouster reports per-point time as nanoseconds
+# relative to scan start ("unit: NANO_SECONDS"), so expected_dt is scaled to
+# ~1e8. Hesai's "timestamp" field is float64 SECONDS (absolute epoch), so dt
+# comes out ~0.1 -- against a ~1e8 threshold that's r_dt~1e-9, and every frame
+# gets rejected as "Inconsistent Timestamp" / skipped. Override just the unit.
+RUN sed -i 's|unit: NANO_SECONDS|unit: SECONDS|' \
+    /ros_ws/src/ct_icp/ros/catkin_ws/ct_icp_odometry/params/ct_icp/nhcd/nhcd_config.yaml
+
+# Temporary diagnostics: the node logs "Found Inconsistent Timestamp"/"Skipping
+# the frame" only when debug_print is on, needed to root-cause bad trajectories
+# on the Oxford Spires (walking-pace) dataset vs. the vehicle-tuned california.yaml.
+RUN sed -i 's|<arg name="debug_print" default="false"|<arg name="debug_print" default="true"|' \
+    /ros_ws/src/ct_icp/ros/catkin_ws/ct_icp_odometry/launch/ct_icp_slam.launch
 
 ARG UID=1000
 ARG GID=1000

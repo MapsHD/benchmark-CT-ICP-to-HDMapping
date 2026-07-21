@@ -74,7 +74,7 @@ docker run -it --rm \
     tmux send-keys -t '"$TMUX_SESSION"' '\''sleep 5
 source /opt/ros/noetic/setup.bash
 source /ros_ws/devel/setup.bash
-roslaunch ct_icp_odometry urban_loco_CAL.launch rosbag:='"$DATASET_CONTAINER_PATH"' use_sim_time:=true; tmux wait-for -S BAG_DONE;
+roslaunch ct_icp_odometry lidar_odometry_nhcd_os64.launch rosbag:='"$DATASET_CONTAINER_PATH"' rate:=1.0 use_sim_time:=true; tmux wait-for -S BAG_DONE;
 '\'' C-m
 
     # ---------- PANEL 2: rosbag record ----------
