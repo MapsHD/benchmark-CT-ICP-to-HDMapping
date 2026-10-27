@@ -61,6 +61,7 @@ docker run -it --rm \
   --network host \
   -e DISPLAY=$DISPLAY \
   -e ROS_HOME=/tmp/.ros \
+  -e DISABLE_ROS1_EOL_WARNINGS=1 \
   -u 1000:1000 \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v "$DATASET_HOST_PATH":"$DATASET_CONTAINER_PATH":ro \
@@ -74,7 +75,7 @@ docker run -it --rm \
     tmux send-keys -t '"$TMUX_SESSION"' '\''sleep 5
 source /opt/ros/noetic/setup.bash
 source /ros_ws/devel/setup.bash
-roslaunch ct_icp_odometry urban_loco_CAL.launch rosbag:='"$DATASET_CONTAINER_PATH"' use_sim_time:=true; tmux wait-for -S BAG_DONE;
+roslaunch ct-icp-to-hdmapping ct_icp_canonical.launch rosbag:='"$DATASET_CONTAINER_PATH"' use_sim_time:=true; tmux wait-for -S BAG_DONE;
 '\'' C-m
 
     # ---------- PANEL 2: rosbag record ----------
@@ -113,6 +114,7 @@ docker run -it --rm \
   --network host \
   -e DISPLAY="$DISPLAY" \
   -e ROS_HOME=/tmp/.ros \
+  -e DISABLE_ROS1_EOL_WARNINGS=1 \
   -u 1000:1000 \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v "$BAG_OUTPUT_HOST":"$BAG_OUTPUT_CONTAINER" \

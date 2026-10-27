@@ -90,6 +90,18 @@ make -j$(nproc) && \
 make install
 
 WORKDIR /ros_ws
+
+# Canonical bag: the node publishes the pose at the end of the scan (end_pose)
+# with the cloud's header stamp, the time of the first point, i.e. one sweep
+# (0.1 s) early; at walking pace that alone adds ~4 cm APE. Stamp the odometry
+# with the end of the scan: header stamp + (end - begin) of the pose times, which
+# are the scan's min/max point time in the config's unit. The TF (begin_pose)
+# keeps the header stamp. Fails the build if the line changes.
+RUN f=src/ct_icp/ros/catkin_ws/ct_icp_odometry/src/ct_icp_odometry_node.cxx && \
+    grep -q 'publish(ct_icp::SlamPoseToROSOdometry(summary.frame.end_pose.pose, stamp)$' $f && \
+    sed -i 's|publish(ct_icp::SlamPoseToROSOdometry(summary.frame.end_pose.pose, stamp)$|publish(ct_icp::SlamPoseToROSOdometry(summary.frame.end_pose.pose, stamp + ros::Duration((summary.frame.end_pose.dest_timestamp - summary.frame.begin_pose.dest_timestamp) * ct_icp::ToSecondsFactor(config.unit)))|' $f && \
+    [ "$(grep -c 'end_pose.pose, stamp + ros::Duration(' $f)" = 1 ]
+
 RUN source /opt/ros/noetic/setup.bash && \
     catkin_make \
      -DSUPERBUILD_INSTALL_DIR=/ros_ws/src/ct_icp/install
